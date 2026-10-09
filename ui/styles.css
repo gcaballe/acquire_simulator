@@ -17,9 +17,13 @@ input,select{background:#0f1729;color:#fff;border:1px solid #33415f;border-radiu
 .cell{aspect-ratio:1.35/1;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:#232d47;color:#aeb9d4;cursor:default;user-select:none}
 .cell.orphan{background:#c7cede;color:#111}
 .cell.empty{opacity:.85}
+.cell.highlight{outline:3px solid #ffd60a;outline-offset:-3px;box-shadow:0 0 0 3px rgba(255,214,10,.35);position:relative;z-index:1;opacity:1}
 .banner{margin:12px;padding:10px 12px;border-radius:10px;background:#1b2742;border:1px solid #33415f;font-weight:600}
 .legend{display:flex;gap:8px;flex-wrap:wrap;margin:8px 12px;font-size:12px}
-.pill{padding:3px 8px;border-radius:20px;font-weight:700;font-size:11px}
+.pill{padding:3px 8px;border-radius:20px;font-weight:700;font-size:11px;white-space:nowrap}
+.log .pill,.mergebox .pill{padding:1px 7px;font-size:11px}
+.pill.shr{font-size:10px;padding:2px 5px;margin:1px;min-width:20px;display:inline-block;text-align:center}
+.pill.zero{background:transparent;border:1px solid #33415f;color:#8fa0c0;opacity:.65}
 .rack{display:flex;gap:8px;flex-wrap:wrap}
 .tile{background:#e8ecf4;color:#111;border-radius:8px;padding:10px 12px;font-weight:800;cursor:pointer;border:3px solid transparent}
 .tile.playable{border-color:#35c759}

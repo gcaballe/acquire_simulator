@@ -9,6 +9,7 @@ const $ = (id) => document.getElementById(id);
 let state = null;
 let seats = []; // {name, human, difficulty}
 let aiTimer = null;
+let fastMode = false; // off by default: AI advances one decision per manual click
 
 function aiDelay() { return +$("aiDelay").value; }
 
@@ -40,6 +41,13 @@ function initSetup() {
   $("numPlayers").onchange = renderSeats;
   $("humanName").oninput = () => { if (seats[0]) seats[0].elName.value = $("humanName").value; };
   $("aiDelay").oninput = () => ($("aiDelayVal").textContent = `${$("aiDelay").value}ms`);
+  $("fastModeLive").onchange = () => {
+    fastMode = $("fastModeLive").checked;
+    if (fastMode) pumpAi(); else stopAi();
+    renderAction();
+    updateAiBar();
+  };
+  $("btnNextAi").onclick = () => stepAiOnce();
   renderSeats();
   $("btnStart").onclick = startGame;
   $("btnNew").onclick = () => { $("setup").classList.remove("hidden"); $("game").classList.add("hidden"); stopAi(); };
@@ -55,6 +63,8 @@ function startGame() {
   const humans = diffs.map((d) => d === "human");
   state = createGame({ names, humans });
   state._diffs = diffs;
+  fastMode = $("fastMode").checked; // off by default
+  $("fastModeLive").checked = fastMode;
   $("setup").classList.add("hidden");
   $("game").classList.remove("hidden");
   $("gameover").classList.add("hidden");
@@ -75,24 +85,41 @@ function isAiTurn() {
 
 function pumpAi() {
   stopAi();
+  updateAiBar();
   if (!state || state.over) return;
   if (!isAiTurn()) return;
-  aiTimer = setTimeout(() => {
-    if (!state || state.over || !isAiTurn()) return;
-    const diff = currentDiff();
-    const mv = getAiMove(state, diff);
-    const r = apply(state, mv);
-    if (!r.ok) {
-      // fallback: first legal
-      const legals = getLegalActions(state);
-      if (legals.length) { const r2 = apply(state, legals[0]); if (r2.ok) state = withDiffs(r2.state); }
-    } else {
-      state = withDiffs(r.state);
-    }
-    render();
-    if (state.over) return showGameOver();
-    pumpAi(); // chain (merge/buy/end steps)
-  }, aiDelay());
+  if (!fastMode) return; // step mode: wait for manual "Next AI step"
+  aiTimer = setTimeout(stepAiOnce, aiDelay());
+}
+
+// Advance exactly one AI decision (used by fast-mode timer and manual stepping).
+function stepAiOnce() {
+  stopAi();
+  if (!state || state.over || !isAiTurn()) return;
+  const diff = currentDiff();
+  const mv = getAiMove(state, diff);
+  const r = apply(state, mv);
+  if (!r.ok) {
+    // fallback: first legal
+    const legals = getLegalActions(state);
+    if (legals.length) { const r2 = apply(state, legals[0]); if (r2.ok) state = withDiffs(r2.state); }
+  } else {
+    state = withDiffs(r.state);
+  }
+  render();
+  if (state.over) return showGameOver();
+  pumpAi(); // in fast mode chains; in step mode just refreshes the Next button
+}
+
+function updateAiBar() {
+  const bar = $("aiBar");
+  if (!bar) return;
+  if (!state || state.over) { bar.classList.add("hidden"); return; }
+  bar.classList.remove("hidden");
+  const live = $("fastModeLive");
+  if (live && live.checked !== fastMode) live.checked = fastMode;
+  const btn = $("btnNextAi");
+  if (btn) btn.style.display = isAiTurn() && !fastMode ? "" : "none";
 }
 
 function withDiffs(s) { s._diffs = state._diffs; return s; }
@@ -105,6 +132,7 @@ function render() {
   renderAction();
   renderLog();
   renderBanner();
+  updateAiBar();
 }
 
 function renderBanner() {
@@ -123,6 +151,7 @@ function renderBoard() {
     const d = document.createElement("div");
     const cell = state.board[i];
     d.className = "cell " + (cell.t === "empty" ? "empty" : cell.t === "orphan" ? "orphan" : "");
+    d.dataset.cell = i;
     d.title = tileLabel(i);
     if (cell.t === "corp") {
       const c = CORPORATIONS[cell.c];
@@ -152,12 +181,21 @@ function renderRack() {
   const tiles = [...me.tiles].sort((a, b) => a - b);
   for (const t of tiles) {
     const chk = canPlaceTile(state, me.id, t);
+    const allowed = isMyDecision && chk.ok;
     const d = document.createElement("button");
     d.className = "tile " + (chk.ok ? "playable" : "unplayable");
     d.textContent = tileLabel(t);
     d.title = chk.ok ? `Place → ${chk.kind}` : `Unplayable (${chk.reason})`;
-    d.disabled = !(isMyDecision && chk.ok);
+    const highlight = (on) => {
+      const cell = document.querySelector(`#board [data-cell="${t}"]`);
+      if (cell) cell.classList.toggle("highlight", on);
+    };
+    d.onmouseenter = () => highlight(true);
+    d.onmouseleave = () => highlight(false);
+    d.onfocus = () => highlight(true);
+    d.onblur = () => highlight(false);
     d.onclick = () => {
+      if (!allowed) return;
       const r = apply(state, { type: "place", player: me.id, tile: t });
       if (r.ok) { state = withDiffs(r.state); render(); pumpAi(); }
     };
@@ -170,20 +208,65 @@ function renderRack() {
 
 function renderPlayers() {
   const el = $("players");
-  el.innerHTML = `<table class="scores"><tr><th>P</th><th>Cash</th><th>Net*</th><th>Tiles</th><th>Shares T S A W F I C</th></tr>` +
+  const head = CORPORATIONS.map((c) => `<span class="pill shr" style="background:${c.color};color:${c.textOn}">${c.short}</span>`).join("");
+  el.innerHTML = `<table class="scores"><tr><th>P</th><th>Cash</th><th>Net*</th><th>T</th><th>Shares<br/>${head}</th></tr>` +
     state.players.map((p) => {
       const nw = netWorth(state, p.id);
       const turn = p.id === state.turn.whose ? "▶" : "";
-      return `<tr><td>${turn}${p.name}${p.isHuman ? " (you)" : ""}</td><td>$${p.cash}</td><td>$${nw}</td><td>${p.tiles.length}</td><td>${p.shares.join(" ")}</td></tr>`;
-    }).join("") + `</table><p class="hint">*Net = cash + shares at current prices. Hidden info: AI tiles unknown to you in real game; shown here counts only.</p>`;
+      const shr = p.shares.map((n, i) => {
+        const c = CORPORATIONS[i];
+        return n > 0
+          ? `<span class="pill shr" style="background:${c.color};color:${c.textOn}">${n}</span>`
+          : `<span class="pill shr zero">0</span>`;
+      }).join("");
+      return `<tr><td>${turn}${escapeHtml(p.name)}${p.isHuman ? " (you)" : ""}</td><td>$${p.cash}</td><td>$${nw}</td><td>${p.tiles.length}</td><td>${shr}</td></tr>`;
+    }).join("") + `</table><p class="hint">*Net = cash + shares at current prices. Share counts follow header order.</p>`;
 }
 
 function renderLog() {
   const el = $("log");
-  el.innerHTML = state.log.slice(-60).reverse().map((e) => `<div>${escapeHtml(e.msg)}</div>`).join("");
+  el.innerHTML = state.log.slice(-60).reverse().map((e) => `<div>${colorize(escapeHtml(e.msg))}</div>`).join("");
 }
 
 function escapeHtml(s) { return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+// Colored corp pill + auto-colorizer for log/action text (applied AFTER escaping).
+function pill(c) { return `<span class="pill" style="background:${c.color};color:${c.textOn}">${c.name}</span>`; }
+const CORP_NAME_RE = new RegExp(`\\b(${CORPORATIONS.map((c) => c.name).sort((a, b) => b.length - a.length).join("|")})\\b`, "g");
+function colorize(escapedHtml) {
+  return escapedHtml.replace(CORP_NAME_RE, (m) => {
+    const c = CORPORATIONS.find((x) => x.name === m);
+    return `<span class="pill" style="background:${c.color};color:${c.textOn}">${m}</span>`;
+  });
+}
+
+function describeAiDecision() {
+  const t = state.turn;
+  const p = state.players[t.current];
+  switch (t.phase) {
+    case "place": {
+      const n = playableTiles(state, t.current).length;
+      return n === 0 ? `${p.name} has no playable tile — will skip to buying.` : `${p.name} will place a tile.`;
+    }
+    case "found":
+      return `${p.name} will found a corporation (free share included).`;
+    case "survivor": {
+      const tied = t.merger.tied.map((c) => `${CORPORATIONS[c].name} (${state.chains[c]})`).join(" vs ");
+      return `${p.name} will choose the merger survivor: ${tied}.`;
+    }
+    case "merge": {
+      const m = t.merger;
+      const hold = state.players[t.current].shares[m.prey];
+      return `${p.name} splits ${hold} × ${CORPORATIONS[m.prey].name} (keep/sell/trade → ${CORPORATIONS[m.survivor].name}).`;
+    }
+    case "buy":
+      return `${p.name} will buy shares (up to 3, cash $${state.players[t.current].cash}).`;
+    case "end":
+      return canEndGame(state.chains) ? `${p.name} may END THE GAME on this turn.` : `${p.name} will end the turn and draw back to 6 tiles.`;
+    default:
+      return `${p.name} is deciding (${t.phase}).`;
+  }
+}
 
 function renderAction() {
   const el = $("action");
@@ -191,7 +274,12 @@ function renderAction() {
   const me = state.turn.current;
   const p = state.players[me];
   if (!p.isHuman) {
-    el.innerHTML = `<h3>AI thinking…</h3><p class="hint">${escapeHtml(p.name)} (${currentDiff()}) is deciding (${state.turn.phase}).</p>`;
+    el.innerHTML = `<h3>${escapeHtml(p.name)} (${currentDiff()}) to act</h3>
+      <p class="hint">${colorize(escapeHtml(describeAiDecision()))}</p>` +
+      (fastMode ? `<p class="hint">Fast mode on — playing automatically.</p>`
+                : `<button id="btnNextAi2">Next AI step ▶</button>`);
+    const nb = $("btnNextAi2");
+    if (nb) nb.onclick = () => stepAiOnce();
     return;
   }
   const phase = state.turn.phase;
@@ -213,7 +301,7 @@ function renderAction() {
   if (phase === "survivor") {
     const tied = state.turn.merger.tied;
     el.innerHTML = `<h3>Merger — choose survivor</h3><p class="hint">Tied largest chains; mergermaker decides which survives.</p>` +
-      tied.map((c) => `<div class="buyrow"><span>${CORPORATIONS[c].name} (${state.chains[c]})</span><button data-c="${c}">Survives</button></div>`).join("");
+      tied.map((c) => `<div class="buyrow"><span>${pill(CORPORATIONS[c])} (${state.chains[c]})</span><button data-c="${c}">Survives</button></div>`).join("");
     el.querySelectorAll("[data-c]").forEach((btn) => (btn.onclick = () => doHuman({ type: "chooseSurvivor", player: me, survivor: +btn.dataset.c })));
     return;
   }
@@ -242,8 +330,8 @@ function renderMergeDecision(el, me) {
   const hold = state.players[me].shares[m.prey];
   const price = corpPrice(m.prey, m.preySize);
   const b = corpBonuses(m.prey, m.preySize);
-  el.innerHTML = `<h3>Merger: ${prey.name} → ${surv.name}</h3>
-    <div class="mergebox">You hold <b>${hold}</b> × ${prey.name} (defunct size ${m.preySize}, sell $${price}/share). Survivor bank has ${state.bankShares[m.survivor]} × ${surv.name}.<br/>Bonuses already paid. Now split YOUR ${hold} shares into keep/sell/trade (2 ${prey.name} = 1 ${surv.name}).</div>
+  el.innerHTML = `<h3>Merger: ${pill(prey)} → ${pill(surv)}</h3>
+    <div class="mergebox">You hold <b>${hold}</b> × ${pill(prey)} (defunct size ${m.preySize}, sell $${price}/share). Survivor bank has ${state.bankShares[m.survivor]} × ${pill(surv)}.<br/>Bonuses already paid. Now split YOUR ${hold} shares into keep/sell/trade (2 ${pill(prey)} = 1 ${pill(surv)}).</div>
     <label>Sell <input id="mSell" type="number" min="0" max="${hold}" value="${Math.min(hold, 2)}" /></label>
     <label>Trade (even) <input id="mTrade" type="number" min="0" max="${hold}" step="2" value="0" /></label>
     <p class="hint">Keep = <span id="mKeep">${hold}</span>. Trade limited by survivor bank (${state.bankShares[m.survivor]} available → max ${Math.min(hold - (hold % 2), state.bankShares[m.survivor] * 2)} trade).</p>

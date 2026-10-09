@@ -29,6 +29,7 @@
       </label>
       <label>Your name <input id="humanName" value="You" maxlength="12" /></label>
       <label>AI speed <input id="aiDelay" type="range" min="150" max="2000" step="50" value="650" /> <span id="aiDelayVal">650ms</span></label>
+      <label>Fast mode <input id="fastMode" type="checkbox" /> <span class="hint">auto-play AI (off = step manually)</span></label>
     </div>
     <div id="seatRows"></div>
     <div class="row">
@@ -40,6 +41,10 @@
   <main id="game" class="hidden">
     <section class="board-col">
       <div id="turnBanner" class="banner"></div>
+      <div class="row" id="aiBar">
+        <label><input id="fastModeLive" type="checkbox" /> Fast mode (auto-play AI)</label>
+        <button id="btnNextAi">Next AI step ▶</button>
+      </div>
       <div id="board" class="board"></div>
       <div class="legend" id="legend"></div>
       <div id="rackWrap" class="card">
