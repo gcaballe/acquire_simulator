@@ -1,0 +1,44 @@
+:root { --bg:#0f1420; --panel:#182031; --line:#2b3757; }
+*{box-sizing:border-box}
+body{margin:0;background:#0e1320;color:#e8ecf4;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;background:#141b2e;border-bottom:1px solid #26314d;position:sticky;top:0;z-index:5}
+h1{margin:0;font-size:22px}.sub{font-size:13px;color:#9fb0d0;font-weight:400}
+.rules-line{margin:2px 0 0;font-size:12px;color:#9fb0d0}
+button{background:#2f6fed;border:0;color:#fff;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.ghost{background:#222c44}
+.card{background:#162032;border:1px solid #2a3757;border-radius:12px;padding:12px 14px;margin:12px}
+#setup{max-width:900px;margin:14px auto}
+.setup-grid{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px}
+input,select{background:#0f1729;color:#fff;border:1px solid #33415f;border-radius:8px;padding:7px 9px}
+#game{display:grid;grid-template-columns:minmax(420px,1fr) 380px;gap:4px;max-width:1280px;margin:0 auto;align-items:start}
+.board{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;background:#0b101d;padding:8px;border-radius:12px;border:1px solid #2a3757}
+.cell{aspect-ratio:1.35/1;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:#232d47;color:#aeb9d4;cursor:default;user-select:none}
+.cell.orphan{background:#c7cede;color:#111}
+.cell.empty{opacity:.85}
+.banner{margin:12px;padding:10px 12px;border-radius:10px;background:#1b2742;border:1px solid #33415f;font-weight:600}
+.legend{display:flex;gap:8px;flex-wrap:wrap;margin:8px 12px;font-size:12px}
+.pill{padding:3px 8px;border-radius:20px;font-weight:700;font-size:11px}
+.rack{display:flex;gap:8px;flex-wrap:wrap}
+.tile{background:#e8ecf4;color:#111;border-radius:8px;padding:10px 12px;font-weight:800;cursor:pointer;border:3px solid transparent}
+.tile.playable{border-color:#35c759}
+.tile.unplayable{opacity:.45;cursor:not-allowed}
+.tile.selected{outline:3px solid #2f6fed}
+.hint{font-size:12px;color:#9fb0d0}
+.side-col .card{margin-right:12px}
+.log{max-height:260px;overflow:auto;font-size:12px;display:flex;flex-direction:column;gap:4px}
+.log div{background:#0f1729;padding:6px 8px;border-radius:6px}
+table.scores{width:100%;border-collapse:collapse;font-size:12px}
+table.scores th,table.scores td{border-bottom:1px solid #2a3757;padding:4px 6px;text-align:right}
+table.scores th:first-child,table.scores td:first-child{text-align:left}
+.hidden{display:none!important}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:20}
+.modal-body{max-width:720px;max-height:85vh;overflow:auto}
+.row{display:flex;gap:10px;align-items:center;margin-top:8px}
+.seat{display:flex;gap:8px;align-items:center;margin:4px 0;font-size:13px}
+.buyrow{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #26314d;font-size:13px}
+.stepper{display:flex;gap:6px;align-items:center}
+.stepper button{padding:4px 10px}
+.mergebox{background:#0f1729;border-radius:8px;padding:8px;margin:6px 0;font-size:13px}
+@media(max-width:980px){#game{grid-template-columns:1fr}}

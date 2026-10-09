@@ -1,0 +1,14 @@
+{
+  "name": "acquire-simulator",
+  "version": "1.0.0",
+  "description": "Acquire board game simulator (classic tournament rules, 2016 corp names) - human vs AI, multiplayer-ready engine",
+  "type": "module",
+  "scripts": {
+    "dev": "npx serve . -l 8080",
+    "test": "node --test test/engine.test.js",
+    "start": "npx serve . -l 8080"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

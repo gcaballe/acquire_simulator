@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Acquire — Tournament Practice Simulator</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>Acquire <span class="sub">tournament practice</span></h1>
+      <p class="rules-line">Classic rules (safe 11 · end 41 / all-safe) · Tower (yellow) · Sackson (red) · American (dark blue) · Worldwide (purple) · Festival (dark green) · Imperial (orange) · Continental (light blue)</p>
+    </div>
+    <div class="top-actions">
+      <button id="btnPrices" class="ghost">Price table</button>
+      <button id="btnHelp" class="ghost">How to play</button>
+      <button id="btnNew" class="ghost">New game</button>
+    </div>
+  </header>
+
+  <section id="setup" class="card">
+    <h2>Game setup</h2>
+    <div class="setup-grid">
+      <label>Players (3–6)
+        <select id="numPlayers">
+          <option>3</option><option selected>4</option><option>5</option><option>6</option>
+        </select>
+      </label>
+      <label>Your name <input id="humanName" value="You" maxlength="12" /></label>
+      <label>AI speed <input id="aiDelay" type="range" min="150" max="2000" step="50" value="650" /> <span id="aiDelayVal">650ms</span></label>
+    </div>
+    <div id="seatRows"></div>
+    <div class="row">
+      <button id="btnStart">Start game</button>
+      <span class="hint">You are Player 1. AI fills the rest. Engine is multiplayer-ready (see README).</span>
+    </div>
+  </section>
+
+  <main id="game" class="hidden">
+    <section class="board-col">
+      <div id="turnBanner" class="banner"></div>
+      <div id="board" class="board"></div>
+      <div class="legend" id="legend"></div>
+      <div id="rackWrap" class="card">
+        <h3>Your tiles <span id="rackWho"></span></h3>
+        <div id="rack" class="rack"></div>
+        <p class="hint" id="rackHint"></p>
+      </div>
+    </section>
+    <aside class="side-col">
+      <div id="action" class="card"></div>
+      <div class="card">
+        <h3>Players</h3>
+        <div id="players"></div>
+      </div>
+      <div class="card">
+        <h3>Log</h3>
+        <div id="log" class="log"></div>
+      </div>
+    </aside>
+  </main>
+
+  <div id="modal" class="modal hidden"><div class="modal-body card"><button id="modalClose" class="ghost">Close</button><div id="modalContent"></div></div></div>
+  <div id="gameover" class="modal hidden"><div class="modal-body card"><h2>Game over</h2><div id="finalTable"></div><button id="btnAgain">Play again</button></div></div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
